@@ -1,0 +1,36 @@
+FROM ubuntu:18.04
+MAINTAINER "Bhargav"
+WORKDIR /build/
+
+# First update the base container to latest versions of everything
+RUN apt-get update
+
+# Expecting kmod software version as an input to the build
+ARG KMODVER
+RUN  apt-get install -y git
+RUN mkdir /home/sampleTest; \
+           cd /home/sampleTest; \
+           git clone http://dpdk.org/git/dpdk-kmods
+
+
+WORKDIR /home/sampleTest/dpdk-kmods/linux/igb_uio
+# Expecting kernel version as an input to the build
+ARG KVER
+
+# Note, your host must have access to repos where kernel developement
+# packages can be installed. If it doesn't the following steps will
+# fail
+
+
+# Prep and build the modul
+RUN apt-get install -y kmod
+RUN apt-get install -y sudo
+RUN apt-get update
+RUN apt-get install -y make
+RUN apt-get install -y linux-headers-`uname -r`
+#RUN ls -l /lib/modules/`uname -r`/
+RUN apt-get install -y gcc
+RUN make all       KVER=${KVER} KMODVER=${KMODVER}
+RUN  install -v -m 755 -d /lib/modules/`uname -r`/
+RUN  install -v -m 644 igb_uio.ko  /lib/modules/`uname -r`/igb-uio.ko
+RUN depmod -a
