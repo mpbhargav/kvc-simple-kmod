@@ -22,13 +22,12 @@ ARG KVER
 # fail
 
 
-# Prep and build the modul
+# Prep and build the module
 RUN apt-get install -y kmod
 RUN apt-get install -y sudo
 RUN apt-get update
 RUN apt-get install -y make
 RUN apt-get install -y linux-headers-`uname -r`
-#RUN ls -l /lib/modules/`uname -r`/
 RUN apt-get install -y gcc
 RUN make all       KVER=${KVER} KMODVER=${KMODVER}
 RUN  install -v -m 755 -d /lib/modules/`uname -r`/
