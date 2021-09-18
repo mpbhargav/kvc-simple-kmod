@@ -8,28 +8,35 @@ RUN apt-get update
 # Expecting kmod software version as an input to the build
 ARG KMODVER
 RUN  apt-get install -y git
-RUN mkdir /home/sampleTest; \
-           cd /home/sampleTest; \
-           git clone http://dpdk.org/git/dpdk-kmods
+RUN mkdir /tmp/dpdk_code
+WORKDIR /tmp/dpdk_code
+
+RUN git clone git://dpdk.org/dpdk-stable
+
+RUN cd dpdk-stable;\
+       git checkout v19.11.2
 
 
-WORKDIR /home/sampleTest/dpdk-kmods/linux/igb_uio
 # Expecting kernel version as an input to the build
 ARG KVER
-
-# Note, your host must have access to repos where kernel developement
-# packages can be installed. If it doesn't the following steps will
-# fail
 
 
 # Prep and build the module
 RUN apt-get install -y kmod
 RUN apt-get install -y sudo
-RUN apt-get update
+RUN apt-get install -y python3 python3-pip python3-setuptools python3-wheel ninja-build
+RUN pip3 install meson
+
 RUN apt-get install -y make
 RUN apt-get install -y linux-headers-`uname -r`
 RUN apt-get install -y gcc
-RUN make all       KVER=${KVER} KMODVER=${KMODVER}
+
+RUN mkdir /tmp/dpdk-build
+WORKDIR /tmp/dpdk-build
+RUN meson  /tmp/dpdk_code/dpdk-stable /tmp/dpdk-build
+RUN ninja kernel/linux/igb_uio/igb_uio.ko
+RUN ninja kernel/linux/kni/rte_kni.ko
 RUN  install -v -m 755 -d /lib/modules/`uname -r`/
-RUN  install -v -m 644 igb_uio.ko  /lib/modules/`uname -r`/igb-uio.ko
+RUN  install -v -m 644  kernel/linux/igb_uio/igb_uio.ko  /lib/modules/`uname -r`/igb-uio.ko
+RUN  install -v -m 644  kernel/linux/kni/rte_kni.ko  /lib/modules/`uname -r`/rte-kni.ko
 RUN depmod -a
